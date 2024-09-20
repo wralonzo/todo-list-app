@@ -93,6 +93,13 @@ class TaskViewModel extends ChangeNotifier {
           UILocalNotificationDateInterpretation.absoluteTime,
     );
 
+    await flutterLocalNotificationsPlugin.show(
+      0,
+      'Nueva tarea',
+      'Se creo una tarea',
+      platformChannelSpecifics,
+    );
+
     print('Notificación programada para: $notificationDate');
   }
 
