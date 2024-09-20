@@ -25,41 +25,30 @@ class _TaskManagementPageState extends State<TaskManagementPage> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: const Text('Task Management'),
+        title: const Text('ToDo List'),
         actions: [
-          // Filtros en el AppBar
           PopupMenuButton<String>(
             onSelected: (filter) {
               context.read<TaskViewModel>().filter = filter;
-              // ignore: invalid_use_of_protected_member
               context.read<TaskViewModel>().notifyListeners();
             },
             itemBuilder: (context) => [
+              const PopupMenuItem(value: "all", child: Text("Todas")),
               const PopupMenuItem(
-                value: "all",
-                child: Text("All Tasks"),
-              ),
+                  value: "completed", child: Text("Completadas")),
               const PopupMenuItem(
-                value: "completed",
-                child: Text("Completed"),
-              ),
-              const PopupMenuItem(
-                value: "progress",
-                child: Text("Progress"),
-              ),
-              const PopupMenuItem(
-                value: "pending",
-                child: Text("Pending"),
-              ),
+                  value: "progress", child: Text("En progreso")),
+              const PopupMenuItem(value: "pending", child: Text("Pendientes")),
             ],
           ),
           IconButton(
-              onPressed: () {
-                Navigator.of(context).pushReplacement(MaterialPageRoute(
-                  builder: (context) => const LoginPage(),
-                ));
-              },
-              icon: const Icon(Icons.logout))
+            onPressed: () {
+              Navigator.of(context).pushReplacement(MaterialPageRoute(
+                builder: (context) => const LoginPage(),
+              ));
+            },
+            icon: const Icon(Icons.logout),
+          )
         ],
       ),
       body: Consumer<TaskViewModel>(
@@ -69,46 +58,63 @@ class _TaskManagementPageState extends State<TaskManagementPage> {
           }
 
           return NotificationListener<ScrollNotification>(
-              onNotification: (ScrollNotification scrollInfo) {
-                if (scrollInfo.metrics.pixels ==
-                        scrollInfo.metrics.maxScrollExtent &&
-                    !taskViewModel.isLoading) {
-                  taskViewModel.fetchTasks();
-                }
-                return true;
-              },
-              child: DragAndDropLists(
-                itemDecorationWhileDragging: BoxDecoration(
-                  color: Colors.grey[300],
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 4,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-                children: [
-                  DragAndDropList(
-                    header: const Text("Tareas"),
-                    children: taskViewModel.filteredTasks.map((task) {
-                      return DragAndDropItem(
+            onNotification: (ScrollNotification scrollInfo) {
+              if (scrollInfo.metrics.pixels ==
+                      scrollInfo.metrics.maxScrollExtent &&
+                  !taskViewModel.isLoading) {
+                taskViewModel.fetchTasks();
+              }
+              return true;
+            },
+            child: DragAndDropLists(
+              listPadding: const EdgeInsets.all(10),
+              itemDecorationWhileDragging: BoxDecoration(
+                color: Colors.grey[300],
+                boxShadow: const [
+                  BoxShadow(
+                      color: Colors.black12, blurRadius: 4, spreadRadius: 2),
+                ],
+              ),
+              children: [
+                DragAndDropList(
+                  canDrag: true,
+                  children: taskViewModel.filteredTasks.map((task) {
+                    return DragAndDropItem(
+                      child: Dismissible(
+                        key: Key(task.id.toString()),
+                        background: Container(color: Colors.red),
+                        onDismissed: (direction) {
+                          // Obtener el índice de la tarea que se está eliminando
+                          final removedTask = task;
+                          // Eliminar tarea de la lista
+                          taskViewModel.tasks.remove(task);
+                          // Mostrar SnackBar
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                                content: Center(
+                                    child: Text(
+                                        "${removedTask.title} eliminado"))),
+                          );
+                        },
                         child: ListTile(
+                          leading: CircleAvatar(
+                            child: Text(task.id.toString()),
+                          ),
                           title: Text(task.title),
                           subtitle: Text(task.description),
                         ),
-                      );
-                    }).toList(),
-                  ),
-                ],
-                onItemReorder:
-                    (oldIndex, oldListIndex, newItemIndex, newListIndex) {
-                  taskViewModel.reorderTasks(oldIndex, newItemIndex);
-                },
-                onListReorder: (oldListIndex, newListIndex) {
-                  // Maneja la reordenación de listas si es necesario
-                },
-              ));
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+              onItemReorder:
+                  (oldIndex, oldListIndex, newItemIndex, newListIndex) {
+                taskViewModel.reorderTasks(oldIndex, newItemIndex);
+              },
+              onListReorder: (oldListIndex, newListIndex) {},
+            ),
+          );
         },
       ),
       floatingActionButton: FloatingActionButton(
@@ -147,11 +153,12 @@ class _TaskManagementPageState extends State<TaskManagementPage> {
             TextButton(
               onPressed: () {
                 final newTask = TaskInsert(
-                    title: titleController.text,
-                    description: descriptionController.text,
-                    userId: 1,
-                    dueDate: DateTime.now(),
-                    status: 'pending');
+                  title: titleController.text,
+                  description: descriptionController.text,
+                  userId: 1,
+                  dueDate: DateTime.now(),
+                  status: 'pending',
+                );
                 Provider.of<TaskViewModel>(context, listen: false)
                     .addTask(newTask);
                 Navigator.of(ctx).pop();

@@ -3,7 +3,7 @@ class Task {
   final String title;
   final String description;
   final String status;
-  final DateTime dueDate;
+  DateTime dueDate;
   final int userId;
   final int order;
 

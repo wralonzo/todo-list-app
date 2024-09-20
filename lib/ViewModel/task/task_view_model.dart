@@ -29,46 +29,71 @@ class TaskViewModel extends ChangeNotifier {
     }
   }
 
-  void _initializeNotifications() {
-    print('notificacion iniciada');
+  void _initializeNotifications() async {
     const initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
     const initializationSettings = InitializationSettings(
       android: initializationSettingsAndroid,
     );
 
-    flutterLocalNotificationsPlugin.initialize(initializationSettings);
+    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
     tz.initializeTimeZones();
+
+    // Crea el canal de notificación
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      'your_channel_id', // Debe coincidir con el ID que usas en la notificación
+      'your_channel_name',
+      description: 'your_channel_description',
+      importance: Importance.max,
+    );
+
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
   }
 
-  void scheduleTaskNotification(Task task, String dueDate) {
-    tz.initializeTimeZones();
+  void scheduleTaskNotification(Task task, String dueDate) async {
     final guatemala = tz.getLocation('America/Guatemala');
-    DateTime taskDueDateUtc = DateTime.parse(dueDate);
-    final scheduledDate = tz.TZDateTime.from(taskDueDateUtc, guatemala);
-    print('scheduledDate:::: ${tz.local}');
-    print('scheduledDate:::: ${scheduledDate}');
-    print('enviando notificacion...');
-    flutterLocalNotificationsPlugin.zonedSchedule(
-      task.id,
-      'Task Reminder',
-      'Task "${task.title}" is due!',
-      scheduledDate,
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'task_reminder_channel', // ID del canal (debe ser único)
-          'Task Reminders', // Nombre del canal (visible para los usuarios)
-          channelDescription:
-              'This channel is used for task due date reminders.', // Descripción del canal (opcional)
-          importance: Importance.high, // Importancia de la notificación
-          priority: Priority.high, // Prioridad de la notificación
-          playSound: true, // Si debe sonar o no
-          enableVibration: true, // Si debe vibrar o no
-        ),
-      ),
+    final nowInGuatemala = tz.TZDateTime.now(guatemala);
+
+    // Asegúrate de que `task.dueDate` sea un `DateTime` válido
+    final scheduledDate = tz.TZDateTime.from(DateTime.now(), guatemala);
+
+    // Sumar 2 minutos a la fecha de vencimiento
+    final notificationDate = scheduledDate.add(Duration(seconds: 2));
+
+    // Verificar que la fecha programada esté en el futuro
+    if (notificationDate.isBefore(nowInGuatemala)) {
+      print('La fecha programada debe ser en el futuro.');
+      return; // Salir si la fecha no es válida
+    }
+
+    // Configurar la notificación
+    const androidPlatformChannelSpecifics = AndroidNotificationDetails(
+      'your_channel_id',
+      'your_channel_name',
+      channelDescription: 'your_channel_description',
+      importance: Importance.max,
+      priority: Priority.high,
+    );
+
+    const platformChannelSpecifics =
+        NotificationDetails(android: androidPlatformChannelSpecifics);
+
+    // Programar la notificación
+    await flutterLocalNotificationsPlugin.zonedSchedule(
+      0,
+      'Tarea Programada: ${task.title}',
+      'Descripción: ${task.description}',
+      notificationDate, // Cambia a notificationDate
+      platformChannelSpecifics,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
     );
+
+    print('Notificación programada para: $notificationDate');
   }
 
   List<Task> tasks = [];
@@ -147,11 +172,12 @@ class TaskViewModel extends ChangeNotifier {
         newTask.order = 0;
         Task createdTask = Task.fromJson(responseData['data']);
         DateTime originalDueDate = createdTask.dueDate; // Tu fecha original
-        String updatedDueDate =
-            originalDueDate.add(Duration(minutes: 1)).toIso8601String();
+        DateTime updatedDueDate =
+            originalDueDate.add(const Duration(minutes: 1));
         print('Nueva fecha de vencimiento: ${updatedDueDate}');
         tasks.add(createdTask); // Add the new task to the list
-        scheduleTaskNotification(createdTask, updatedDueDate);
+        createdTask.dueDate = updatedDueDate;
+        scheduleTaskNotification(createdTask, '');
 
         notifyListeners(); // Notify listeners of the change
       } else {
