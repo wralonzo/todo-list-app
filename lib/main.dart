@@ -5,8 +5,10 @@ import 'package:todo_list_app/ViewModel/task/task_view_model.dart'; // Asegúrat
 import 'package:todo_list_app/view/auth/login_page.dart';
 import 'package:todo_list_app/view/auth/register_page.dart';
 import 'package:todo_list_app/view/task/task_page.dart';
+import 'package:timezone/data/latest.dart' as tz;
 
 void main() {
+  tz.initializeTimeZones();
   runApp(const MyApp());
 }
 

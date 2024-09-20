@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:todo_list_app/model/task/add_task_model.dart';
 import 'package:todo_list_app/model/task/task_response_model.dart';
@@ -14,9 +15,22 @@ class TaskViewModel extends ChangeNotifier {
   FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
   TaskViewModel() {
+    requestNotificationPermission();
     _initializeNotifications();
   }
+
+  Future<void> requestNotificationPermission() async {
+    // Solicitar permisos de notificación
+    final status = await Permission.notification.request();
+    if (status.isGranted) {
+      print("Permiso de notificación concedido");
+    } else {
+      print("Permiso de notificación denegado");
+    }
+  }
+
   void _initializeNotifications() {
+    print('notificacion iniciada');
     const initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
     const initializationSettings = InitializationSettings(
@@ -27,17 +41,30 @@ class TaskViewModel extends ChangeNotifier {
     tz.initializeTimeZones();
   }
 
-  void scheduleTaskNotification(Task task) {
-    final scheduledDate = tz.TZDateTime.from(task.dueDate, tz.local);
-
+  void scheduleTaskNotification(Task task, String dueDate) {
+    tz.initializeTimeZones();
+    final guatemala = tz.getLocation('America/Guatemala');
+    DateTime taskDueDateUtc = DateTime.parse(dueDate);
+    final scheduledDate = tz.TZDateTime.from(taskDueDateUtc, guatemala);
+    print('scheduledDate:::: ${tz.local}');
+    print('scheduledDate:::: ${scheduledDate}');
+    print('enviando notificacion...');
     flutterLocalNotificationsPlugin.zonedSchedule(
       task.id,
       'Task Reminder',
       'Task "${task.title}" is due!',
       scheduledDate,
       const NotificationDetails(
-        android:
-            AndroidNotificationDetails('task_reminder_channel', 'TaskChannel'),
+        android: AndroidNotificationDetails(
+          'task_reminder_channel', // ID del canal (debe ser único)
+          'Task Reminders', // Nombre del canal (visible para los usuarios)
+          channelDescription:
+              'This channel is used for task due date reminders.', // Descripción del canal (opcional)
+          importance: Importance.high, // Importancia de la notificación
+          priority: Priority.high, // Prioridad de la notificación
+          playSound: true, // Si debe sonar o no
+          enableVibration: true, // Si debe vibrar o no
+        ),
       ),
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
@@ -119,7 +146,13 @@ class TaskViewModel extends ChangeNotifier {
         final responseData = json.decode(response.body);
         newTask.order = 0;
         Task createdTask = Task.fromJson(responseData['data']);
+        DateTime originalDueDate = createdTask.dueDate; // Tu fecha original
+        String updatedDueDate =
+            originalDueDate.add(Duration(minutes: 1)).toIso8601String();
+        print('Nueva fecha de vencimiento: ${updatedDueDate}');
         tasks.add(createdTask); // Add the new task to the list
+        scheduleTaskNotification(createdTask, updatedDueDate);
+
         notifyListeners(); // Notify listeners of the change
       } else {
         throw Exception('Failed to add task');
