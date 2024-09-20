@@ -11,6 +11,7 @@ class AuthViewModel with ChangeNotifier {
   String? get token => _token;
   bool get isAuthenticated => _token != null;
 
+  // Authenticar usuario
   Future<dynamic> login(String user, String password) async {
     try {
       final url = Uri.parse('${urlApi}auth/login');
@@ -23,6 +24,7 @@ class AuthViewModel with ChangeNotifier {
         }),
       );
       final responseData = json.decode(response.body);
+      // Respuesta esperada
       if (response.statusCode == 201) {
         if (responseData['success']) {
           final authResponse = AuthResponse.fromJson(responseData);
@@ -51,6 +53,7 @@ class AuthViewModel with ChangeNotifier {
     notifyListeners();
   }
 
+  // Cerrar sesion
   Future<void> logout() async {
     _token = null;
     final prefs = await SharedPreferences.getInstance();
@@ -58,6 +61,7 @@ class AuthViewModel with ChangeNotifier {
     notifyListeners();
   }
 
+  // Validar token si es valido
   Future<bool> validateToken() async {
     if (_token == null) {
       await _loadTokenFromLocalStorage();
@@ -82,6 +86,7 @@ class AuthViewModel with ChangeNotifier {
     return DateTime.fromMillisecondsSinceEpoch(expiry * 1000);
   }
 
+  // Registrar usuario
   Future<bool> register(String user, String firstName, String surname,
       String password, String idDevice) async {
     final url = Uri.parse('${urlApi}auth/register');
@@ -98,9 +103,12 @@ class AuthViewModel with ChangeNotifier {
           'idDevice': idDevice,
         }),
       );
+
+      //Decodificar json
       final responseData = json.decode(response.body);
 
       if (response.statusCode == 201) {
+        //Mapear response
         final registerResponse = RegisterResponse.fromJson(responseData);
         return registerResponse.success;
       }

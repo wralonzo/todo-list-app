@@ -8,6 +8,7 @@ import 'package:todo_list_app/view/task/task_page.dart';
 import 'package:timezone/data/latest.dart' as tz;
 
 void main() {
+  // Zonas horarias para mandar notificaciones
   tz.initializeTimeZones();
   runApp(const MyApp());
 }
