@@ -16,6 +16,8 @@ A **To-Do List** application built with **Flutter** that helps users manage task
 - **State Management**: Managed using **Provider**.
 - **API Integration**: Tasks are synced with a remote API.
 - **Clean Architecture**: Code structure follows best practices with separation of concerns.
+- **SWIPE**: Animacion para eliminar task.
+- **Middleware**
 
 ## Screenshots
 

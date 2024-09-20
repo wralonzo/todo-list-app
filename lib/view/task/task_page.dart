@@ -97,6 +97,17 @@ class _TaskManagementPageState extends State<TaskManagementPage> {
                           );
                         },
                         child: ListTile(
+                          trailing: Checkbox(
+                            value: task.status == 'completed' ? true : false,
+                            onChanged: (value) {
+                              setState(() {
+                                task.status = task.status == 'completed'
+                                    ? 'progress'
+                                    : 'completed';
+                                print(task.status);
+                              });
+                            },
+                          ),
                           leading: CircleAvatar(
                             child: Text(task.id.toString()),
                           ),
